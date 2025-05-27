@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionale Pizzeria Ximenes</title>
+    <link rel="stylesheet" href="pizzeria.css" />
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Meta tag per mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ff6b35" />
+
+    <!-- Per iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Pizzeria" />
+    <!-- Meta-tag PWA - Aggiungi nella sezione <head> -->
+
+    <!-- Meta-tag base per PWA -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Pizzeria" />
+
+    <!-- Tema e colori -->
+    <meta name="theme-color" content="#ff6b35" />
+    <meta name="msapplication-navbutton-color" content="#ff6b35" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
+    <!-- Link al manifest -->
+    <link rel="manifest" href="./manifest.json" />
+
+    <!-- Icone per dispositivi Apple -->
+    <link rel="apple-touch-icon" href="./logo192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./logo192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="./logo512.png" />
+
+    <!-- Icone per Windows/Android -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./logo192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./logo512.png" />
+
+    <!-- Prevenzione zoom indesiderato su input -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Splash screen per iOS (opzionale) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+    <!-- Meta per SEO locale -->
+    <meta
+      name="description"
+      content="Gestionale per pizzeria - Gestione ordini e tavoli"
+    />
+    <meta
+      name="keywords"
+      content="pizzeria, gestionale, ordini, tavoli, ristorante"
+    />
+    <meta name="author" content="Gestionale Pizzeria" />
+  </head>
+  <body>
+    <header>
+      <h1>Pizzeria Ximenes - Gestionale</h1>
+      <div>
+        <button id="settingsBtn" class="btn btn-outline">Impostazioni</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="tabs">
+        <button class="tab active" data-tab="tables">Tavoli</button>
+        <button class="tab" data-tab="takeaway">Asporto</button>
+        <button class="tab" data-tab="menu-editor">Gestione Menu</button>
+      </div>
+
+      <div id="tables" class="tab-content active">
+        <div class="mb-2 flex justify-between items-center">
+          <h2>Gestione Tavoli</h2>
+          <button id="addTableBtn" class="btn btn-primary">Nuovo Tavolo</button>
+        </div>
+        <div class="mb-1">
+          <select id="tableStatusFilter" class="form-control">
+            <option value="all">Tutti i tavoli</option>
+            <option value="active">Solo tavoli attivi</option>
+            <option value="new">Solo tavoli da aprire</option>
+            <option value="closed">Solo tavoli chiusi</option>
+          </select>
+        </div>
+        <div class="tables-container" id="tablesContainer">
+          <!-- Tavoli generati dinamicamente -->
+        </div>
+      </div>
+
+      <div id="takeaway" class="tab-content">
+        <div class="mb-2 flex justify-between items-center">
+          <h2>Gestione Asporto</h2>
+          <button id="addTakeawayBtn" class="btn btn-primary">
+            Nuovo Asporto
+          </button>
+        </div>
+        <div class="tables-container" id="takeawayContainer">
+          <!-- Ordini asporto generati dinamicamente -->
+        </div>
+      </div>
+
+      <div id="menu-editor" class="tab-content">
+        <div class="menu-editor-container">
+          <div class="mb-2 flex justify-between items-center">
+            <h2>Gestione Menu</h2>
+            <div>
+              <button id="addCategoryBtn" class="btn btn-outline">
+                Nuova Categoria
+              </button>
+              <button id="addItemBtn" class="btn btn-primary">
+                Nuovo Prodotto
+              </button>
+            </div>
+          </div>
+          <div class="form-group mb-2">
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="menuSearchInput"
+                placeholder="Cerca prodotto..."
+              />
+              <div class="input-group-append">
+                <button class="btn btn-outline" id="clearSearchBtn">
+                  &times;
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="category-tabs" id="editorCategoryTabs">
+            <!-- Categorie menu generate dinamicamente -->
+          </div>
+
+          <div class="menu-editor-list" id="menuEditorList">
+            <!-- Items menu generati dinamicamente -->
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Order View -->
+    <div id="orderView" class="hidden">
+      <div class="tabs">
+        <button class="tab active" data-tab="order-details">
+          Dettagli Ordine
+        </button>
+        <button class="tab" data-tab="tables-back">Torna indietro</button>
+      </div>
+
+      <div id="order-details" class="tab-content active">
+        <div class="order-container">
+          <div class="menu-container">
+            <div class="category-tabs" id="categoriesTabs">
+              <!-- Categorie menu generate dinamicamente -->
+            </div>
+            <div class="menu-categories" id="menuCategories">
+              <!-- Categorie e prodotti generati dinamicamente -->
+            </div>
+          </div>
+
+          <div class="order-summary">
+            <div class="order-header">
+              <h3 id="orderTitle">Tavolo #1</h3>
+              <span id="orderStatus" class="table-status active">Attivo</span>
+            </div>
+            <div class="order-items" id="orderItems">
+              <!-- Prodotti ordinati generati dinamicamente -->
+            </div>
+            <div class="order-total">
+              <div class="total-row">
+                <span>Subtotale:</span>
+                <span id="subtotal">€0.00</span>
+              </div>
+              <div class="total-row" id="discountsRow">
+                <span>Sconti:</span>
+                <span id="discounts">-€0.00</span>
+              </div>
+              <div class="total-row final-total">
+                <span>Totale:</span>
+                <span id="total">€0.00</span>
+              </div>
+            </div>
+            <div class="order-actions">
+              <button id="applyDiscountBtn" class="btn btn-outline">
+                Applica Sconto
+              </button>
+              <button id="printOrderBtn" class="btn btn-outline">
+                Stampa Comanda
+              </button>
+              <button id="printReceiptBtn" class="btn btn-success">
+                Stampa Conto
+              </button>
+              <button id="closeOrderBtn" class="btn btn-primary">
+                Chiudi Ordine
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tables-back" class="tab-content">
+        <!-- Contenuto vuoto, serve solo per tornare indietro -->
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Modal Aggiungi/Modifica Tavolo -->
+    <div id="tableModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="tableModalTitle">Nuovo Tavolo</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="tablePrefix">Posizione</label>
+            <select class="form-control" id="tablePrefix">
+              <option value="">-- Seleziona --</option>
+              <option value="INT">Interno</option>
+              <option value="EXT">Esterno</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tableNumber">Numero</label>
+            <input
+              type="number"
+              class="form-control"
+              id="tableNumber"
+              placeholder="Numero tavolo"
+              min="1"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tableCustomName"
+              >Oppure personalizza nome tavolo</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="tableCustomName"
+              placeholder="Es. Mario Rossi"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tableStatus">Stato</label>
+            <select class="form-control" id="tableStatus">
+              <option value="new">Da Aprire</option>
+              <option value="active">Attivo</option>
+              <option value="closed">Chiuso</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveTableBtn">Salva</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Conferma Chiusura Ordine -->
+    <div id="confirmCloseModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Conferma Chiusura Ordine</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Sei sicuro di voler chiudere l'ordine?</p>
+          <p>
+            Una volta chiuso, l'ordine sarà archiviato e non potrà essere
+            modificato.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="confirmCloseBtn">Conferma</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Aggiungi Ingrediente -->
+    <div id="ingredientModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="ingredientModalTitle">
+            Aggiungi Ingrediente
+          </h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="ingredientName"
+              >Nome Ingrediente</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="ingredientName"
+              placeholder="Nome ingrediente"
+            />
+          </div>
+          <div id="additionPriceGroup" class="form-group">
+            <label class="form-label" for="ingredientPrice">Prezzo (€)</label>
+            <input
+              type="number"
+              class="form-control"
+              id="ingredientPrice"
+              placeholder="0.00"
+              step="0.10"
+              min="0"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveIngredientBtn">
+            Aggiungi
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Modifica Ordine -->
+    <div id="orderItemModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="orderItemModalTitle">
+            Modifica Prodotto
+          </h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="orderItemQuantity">Quantità</label>
+            <input
+              type="number"
+              class="form-control"
+              id="orderItemQuantity"
+              min="1"
+              value="1"
+            />
+          </div>
+          <div class="form-group" id="familyOptionContainer">
+            <label class="form-label">
+              <input type="checkbox" id="orderItemFamily" /> Pizza Familiare
+              (prezzo doppio)
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="orderItemDiscount">Sconto (%)</label>
+            <input
+              type="number"
+              class="form-control"
+              id="orderItemDiscount"
+              min="0"
+              max="100"
+              value="0"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="orderItemComplement" /> Omaggio (prezzo
+              = 0)
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="orderItemNotes">Note</label>
+            <textarea
+              class="form-control"
+              id="orderItemNotes"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div id="pizzaOptionsContainer" class="form-group">
+            <h4 class="mb-1">Opzioni Pizza</h4>
+
+            <div class="mb-2">
+              <h5>Aggiunzioni</h5>
+              <div id="additionsContainer" class="mb-1">
+                <!-- Aggiunzioni generate dinamicamente -->
+              </div>
+              <button id="addAdditionBtn" class="btn btn-sm btn-outline">
+                + Aggiungi Ingrediente
+              </button>
+            </div>
+
+            <div class="mb-2">
+              <h5>Rimozioni</h5>
+              <div id="removalsContainer" class="mb-1">
+                <!-- Rimozioni generate dinamicamente -->
+              </div>
+              <button id="addRemovalBtn" class="btn btn-sm btn-outline">
+                - Rimuovi Ingrediente
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveOrderItemBtn">Salva</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Aggiungi/Modifica Categoria -->
+    <div id="categoryModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Nuova Categoria</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="categoryName">Nome Categoria</label>
+            <input
+              type="text"
+              class="form-control"
+              id="categoryName"
+              placeholder="Nome categoria"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveCategoryBtn">Salva</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Aggiungi/Modifica Prodotto -->
+    <div id="menuItemModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="menuItemModalTitle">Nuovo Prodotto</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="itemName">Nome Prodotto</label>
+            <input
+              type="text"
+              class="form-control"
+              id="itemName"
+              placeholder="Nome prodotto"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="itemPrice">Prezzo (€)</label>
+            <input
+              type="number"
+              class="form-control"
+              id="itemPrice"
+              placeholder="0.00"
+              step="0.10"
+              min="0"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="itemCategory">Categoria</label>
+            <select class="form-control" id="itemCategory">
+              <!-- Categorie generate dinamicamente -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="itemDescription">Descrizione</label>
+            <textarea
+              class="form-control"
+              id="itemDescription"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveItemBtn">Salva</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Sconto -->
+    <div id="discountModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Applica Sconto</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="discountType">Tipo di Sconto</label>
+            <select class="form-control" id="discountType">
+              <option value="fixed">Importo Fisso (€)</option>
+              <option value="percentage">Percentuale (%)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="discountValue">Valore Sconto</label>
+            <input
+              type="number"
+              class="form-control"
+              id="discountValue"
+              placeholder="0"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="discountReason"
+              >Motivazione (opzionale)</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="discountReason"
+              placeholder="Es. Compleanno, Cliente fedele..."
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveDiscountBtn">Applica</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Impostazioni -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Impostazioni</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="settings-section">
+            <h4 class="settings-section-title">Impostazioni Generali</h4>
+
+            <div class="form-group">
+              <label class="form-label" for="restaurantName">Nome Locale</label>
+              <input
+                type="text"
+                class="form-control"
+                id="restaurantName"
+                value="Pizzeria Ximenes"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="coverCharge"
+                >Prezzo Coperto (€)</label
+              >
+              <input
+                type="number"
+                class="form-control"
+                id="coverCharge"
+                value="1.00"
+                step="0.10"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h4 class="settings-section-title">Backup & Ripristino</h4>
+
+            <div class="form-group">
+              <button class="btn btn-outline mb-1" id="exportDataBtn">
+                Esporta Dati
+              </button>
+              <p class="mb-1">
+                Salva tutti i dati (menu, tavoli, ordini) in un file
+              </p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="importData">Importa Dati</label>
+              <input type="file" class="form-control" id="importData" />
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h4 class="settings-section-title">Pulizia dati</h4>
+
+            <div class="form-group">
+              <button class="btn btn-danger mb-1" id="clearDataBtn">
+                Pulisci dati tavoli e asporto
+              </button>
+              <p class="mb-1">
+                Rimuove tutti i tavoli attivi e gli ordini da asporto. Questa
+                operazione non può essere annullata.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveSettingsBtn">Salva</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Coperti -->
+    <div id="coversModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Imposta Coperti</h3>
+          <button class="modal-close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group text-center">
+            <label class="form-label" for="coversCount"
+              >Numero di Coperti</label
+            >
+            <div
+              class="input-group"
+              style="justify-content: center; align-items: center; gap: 1rem"
+            >
+              <button
+                type="button"
+                class="btn btn-outline btn-icon"
+                id="decreaseCoversBtn"
+                style="font-size: 1.5rem; width: 50px; height: 50px"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                class="form-control"
+                id="coversCount"
+                value="0"
+                min="0"
+                readonly
+                style="text-align: center; font-size: 1.5rem; width: 100px"
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-icon"
+                id="increaseCoversBtn"
+                style="font-size: 1.5rem; width: 50px; height: 50px"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" data-dismiss="modal">Annulla</button>
+          <button class="btn btn-primary" id="saveCoversBtn">Conferma</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Registrazione Service Worker per PWA
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", async () => {
+          try {
+            const registration = await navigator.serviceWorker.register(
+              "/sw.js"
+            );
+            console.log("✅ Service Worker registrato:", registration.scope);
+
+            // Controlla aggiornamenti
+            registration.addEventListener("updatefound", () => {
+              const newWorker = registration.installing;
+              console.log("🔄 Nuovo Service Worker disponibile");
+
+              newWorker.addEventListener("statechange", () => {
+                if (
+                  newWorker.state === "installed" &&
+                  navigator.serviceWorker.controller
+                ) {
+                  // Mostra notifica di aggiornamento all'utente
+                  if (confirm("Nuova versione disponibile! Vuoi aggiornare?")) {
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          } catch (error) {
+            console.error("❌ Errore registrazione Service Worker:", error);
+          }
+        });
+      }
+    </script>
+    <script>
+      // Test API - aggiungi anche questo
+      setTimeout(async () => {
+        console.log("🔍 Testing API...");
+
+        try {
+          const ordini = await api.getOrdini();
+          console.log("✅ API funziona - Ordini trovati:", ordini.length);
+          console.log("📋 Ordini:", ordini);
+        } catch (error) {
+          console.error("❌ API non funziona:", error);
+        }
+      }, 4000);
+    </script>
+    <script>
+      // Test WebSocket - aggiungi questo nel tuo pizzeria.html
+      console.log("🔍 Testing WebSocket...");
+
+      setTimeout(() => {
+        if (typeof io !== "undefined") {
+          console.log("✅ Socket.IO caricato");
+
+          const testSocket = io();
+
+          testSocket.on("connect", () => {
+            console.log("✅ WebSocket CONNESSO!", testSocket.id);
+          });
+
+          testSocket.on("connect_error", (error) => {
+            console.error("❌ WebSocket ERRORE:", error);
+          });
+        } else {
+          console.error("❌ Socket.IO NON caricato");
+        }
+      }, 3000);
+    </script>
+    <script>
+      // Debug visivo per tablet
+      setTimeout(() => {
+        let messaggio = "🔍 Test Tablet:\n";
+        messaggio +=
+          "- API caricata: " +
+          (typeof api !== "undefined" ? "✅" : "❌") +
+          "\n";
+        messaggio +=
+          "- Socket.IO: " + (typeof io !== "undefined" ? "✅" : "❌") + "\n";
+
+        if (typeof api !== "undefined" && api.socket) {
+          messaggio +=
+            "- WebSocket: " +
+            (api.socket.connected ? "🟢 Connesso" : "🔴 Disconnesso");
+        }
+
+        alert(messaggio);
+      }, 3000);
+    </script>
+    <script>
+      // Debug eventi WebSocket in tempo reale
+      setTimeout(() => {
+        if (typeof api !== "undefined" && api.socket) {
+          // Ascolta TUTTI gli eventi dal server
+          api.socket.on("nuovo_ordine", (ordine) => {
+            alert("📨 NUOVO ORDINE RICEVUTO!\n" + ordine.numero_ordine);
+            console.log("📨 Nuovo ordine:", ordine);
+
+            // QUI devi chiamare la tua funzione che aggiorna l'interfaccia
+            // Es: aggiornaListaOrdini(); oppure ricaricaInterfaccia();
+          });
+
+          api.socket.on("ordine_aggiornato", (data) => {
+            alert("📨 ORDINE AGGIORNATO!\nID: " + data.id);
+            console.log("📨 Ordine aggiornato:", data);
+          });
+
+          api.socket.on("ordine_eliminato", (data) => {
+            alert("📨 ORDINE ELIMINATO!\nID: " + data.id);
+            console.log("📨 Ordine eliminato:", data);
+          });
+
+          console.log("🎯 Event listeners collegati!");
+        }
+      }, 4000);
+    </script>
+    <!-- Indicatore stato WebSocket -->
+    <div id="ws-status-indicator" class="ws-status disconnected">
+      🔴 Disconnesso
+    </div>
+
+    <!-- Script per gestire l'indicatore di stato -->
+    <script>
+      // Funzione per aggiornare lo stato WebSocket
+      function aggiornaStatoWebSocket(stato) {
+        const indicator = document.getElementById("ws-status-indicator");
+        if (!indicator) return;
+
+        indicator.className = `ws-status ${stato}`;
+
+        switch (stato) {
+          case "connected":
+            indicator.innerHTML = "🟢 Sync attiva";
+            break;
+          case "connecting":
+            indicator.innerHTML = "🟡 Connessione...";
+            break;
+          case "disconnected":
+            indicator.innerHTML = "🔴 Offline";
+            break;
+        }
+      }
+
+      // Gestisci gli stati di connessione WebSocket
+      document.addEventListener("DOMContentLoaded", () => {
+        // Controlla periodicamente lo stato WebSocket
+        setInterval(() => {
+          if (api && api.socket) {
+            if (api.socket.connected) {
+              aggiornaStatoWebSocket("connected");
+            } else {
+              aggiornaStatoWebSocket("disconnected");
+            }
+          } else {
+            aggiornaStatoWebSocket("disconnected");
+          }
+        }, 2000);
+      });
+    </script>
+    <script src="api_client.js"></script>
+    <script src="pizzeria.js"></script>
+  </body>
+</html>

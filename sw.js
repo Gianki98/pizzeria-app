@@ -5,13 +5,13 @@ const CACHE_NAME = `pizzeria-cache-${CACHE_VERSION}`;
 
 // File da mettere in cache per funzionamento offline
 const STATIC_CACHE_URLS = [
-  "/pizzeria.html",
-  "/pizzeria.css",
-  "/pizzeria.js",
-  "/manifest.json",
-  "/logo192.png",
-  "/logo512.png",
-  // Aggiungi qui altri file che vuoi cachare
+  "./pizzeria.html",
+  "./pizzeria.css", 
+  "./pizzeria.js",
+  "./api_client.js",
+  "./manifest.json",
+  "./logo192.png",
+  "./logo512.png",
 ];
 
 // File da non cachare mai (API dinamiche)

@@ -296,6 +296,11 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("sync_all_orders_broadcast", data);
   });
 
+  socket.on("ordine_chiuso", (data) => {
+    console.log("📢 Ordine chiuso, broadcasting a tutti tranne mittente...");
+    socket.broadcast.emit("ordine_chiuso", data);
+  });
+
   socket.on("disconnect", () => {
     console.log("❌ Client disconnesso:", socket.id);
   });
@@ -313,17 +318,23 @@ server.listen(port, "0.0.0.0", () => {
 });
 
 // Gestione chiusura graceful
+let isClosing = false;
 process.on("SIGINT", () => {
+  if (isClosing) return;
+  isClosing = true;
+
   console.log("\n🛑 Chiusura server...");
-  db.close((err) => {
-    if (err) {
-      console.error("❌ Errore chiusura database:", err.message);
-    } else {
-      console.log("✅ Database chiuso");
-    }
-  });
+
   server.close(() => {
     console.log("✅ Server chiuso");
-    process.exit(0);
+
+    db.close((err) => {
+      if (err && err.message !== "SQLITE_MISUSE: Database is closed") {
+        console.error("❌ Errore chiusura database:", err.message);
+      } else {
+        console.log("✅ Database chiuso");
+      }
+      process.exit(0);
+    });
   });
 });

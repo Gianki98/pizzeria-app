@@ -1,5 +1,5 @@
 // Definizione dello stato dell'applicazione
-closeOrder
+setupWebSocketListeners;
 const appState = {
   menu: {
     categories: [
@@ -209,6 +209,39 @@ function setupWebSocketListeners() {
     }
 
     saveData();
+  });
+  // Listener per chiusura ordini
+  socket.on("ordine_chiuso", (data) => {
+    console.log("🔒 Ordine chiuso ricevuto:", data);
+
+    let tableOrTakeaway;
+    if (data.type === "table") {
+      tableOrTakeaway = appState.tables.find((t) => t.id === data.id);
+    } else {
+      tableOrTakeaway = appState.takeaways.find((t) => t.id === data.id);
+    }
+
+    if (tableOrTakeaway) {
+      // Imposta lo stato a closed come nel tuo closeOrder
+      tableOrTakeaway.status = "closed";
+      tableOrTakeaway.order.closedAt = new Date().toISOString();
+
+      saveData();
+
+      // Se stiamo visualizzando questo ordine, torna alla home
+      if (appState.currentOrderId === data.id) {
+        showTablesView();
+      }
+
+      // Aggiorna le visualizzazioni
+      renderTables();
+      renderTakeaways();
+
+      mostraNotifica(
+        `Ordine ${data.type === "table" ? "tavolo" : "asporto"} chiuso`,
+        "info"
+      );
+    }
   });
 }
 
@@ -3807,9 +3840,18 @@ async function closeOrder() {
 
   saveData();
 
+  // Emetti evento per sincronizzare la chiusura
+  if (api && api.socket && api.socket.connected) {
+    api.socket.emit("ordine_chiuso", {
+      id: appState.currentOrderId,
+      type: appState.currentOrderType,
+      status: "closed",
+    });
+    console.log("📡 Ordine chiuso emesso");
+  }
+
   // Chiudi il modal di conferma
   document.getElementById("confirmCloseModal").classList.remove("active");
-
   // Torna alla vista dei tavoli
   showTablesView();
 

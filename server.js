@@ -255,17 +255,32 @@ app.get("/api/tavoli", (req, res) => {
 
 // Dopo la connessione WebSocket, aggiungi questi event listeners:
 io.on("connection", (socket) => {
-  console.log("👤 Nuovo client connesso:", socket.id);
+  console.log("🔌 Client connesso:", socket.id);
 
-  // IMPORTANTE: Ascolta e ritrasmetti gli eventi
-  socket.on("ordine_aggiornato", (data) => {
-    console.log("📨 Ordine aggiornato ricevuto:", data);
-    // Invia a TUTTI GLI ALTRI client (non al mittente)
-    socket.broadcast.emit("ordine_aggiornato", data);
+  // NUOVO: Gestisci eventi di sincronizzazione
+  socket.on("nuovo_ordine", (ordineData) => {
+    console.log("📢 Nuovo ordine ricevuto, broadcasting...");
+    // Invia a TUTTI i client connessi (tranne chi ha inviato)
+    socket.broadcast.emit("ordine_aggiunto", ordineData);
+  });
+
+  socket.on("ordine_modificato", (ordineData) => {
+    console.log("📢 Ordine modificato, broadcasting...");
+    socket.broadcast.emit("ordine_aggiornato", ordineData);
+  });
+
+  socket.on("ordine_eliminato", (ordineId) => {
+    console.log("📢 Ordine eliminato, broadcasting...");
+    socket.broadcast.emit("ordine_rimosso", ordineId);
+  });
+
+  socket.on("tavolo_aggiornato", (tavoloData) => {
+    console.log("📢 Tavolo aggiornato, broadcasting...");
+    socket.broadcast.emit("tavolo_sincronizzato", tavoloData);
   });
 
   socket.on("disconnect", () => {
-    console.log("👤 Client disconnesso:", socket.id);
+    console.log("❌ Client disconnesso:", socket.id);
   });
 });
 

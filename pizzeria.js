@@ -1,4 +1,5 @@
 // Definizione dello stato dell'applicazione
+initializeApp;
 const appState = {
   menu: {
     categories: [
@@ -78,6 +79,11 @@ async function initializeApp() {
     // Configura i listener WebSocket per sincronizzazione
     setupWebSocketListeners();
 
+    // Dentro initializeApp, dopo setupWebSocketListeners();
+    setTimeout(() => {
+      syncExistingOrders();
+    }, 1000);
+
     // Definisci la funzione globale per aggiornare l'interfaccia
     window.aggiornaListaOrdini = async function () {
       console.log("Aggiornamento lista ordini...");
@@ -136,6 +142,29 @@ function setupWebSocketListeners() {
     } else {
       // Aggiorna solo la lista dei tavoli/asporti
       window.aggiornaListaOrdini();
+    }
+  });
+  socket.on("nuovo_tavolo_asporto", (data) => {
+    console.log("🆕 Nuovo tavolo/asporto ricevuto:", data);
+
+    if (data.type === "takeaway") {
+      // Verifica se non esiste già
+      const exists = appState.takeaways.some((t) => t.id === data.data.id);
+      if (!exists) {
+        appState.takeaways.push(data.data);
+        saveData();
+        renderTakeaways();
+        mostraNotifica(`Nuovo asporto creato: #${data.data.number}`, "info");
+      }
+    } else if (data.type === "table") {
+      // Simile per i tavoli
+      const exists = appState.tables.some((t) => t.id === data.data.id);
+      if (!exists) {
+        appState.tables.push(data.data);
+        saveData();
+        renderTables();
+        mostraNotifica(`Nuovo tavolo creato: ${data.data.number}`, "info");
+      }
     }
   });
 }
@@ -2674,7 +2703,7 @@ function showAddTableModal() {
   document.getElementById("tableModal").classList.add("active");
 }
 
-function showAddTakeawayModal() {
+async function showAddTakeawayModal() {
   // Trova il numero progressivo più alto
   let maxNumber = 0;
   appState.takeaways.forEach((takeaway) => {
@@ -2702,6 +2731,14 @@ function showAddTakeawayModal() {
   appState.takeaways.push(newTakeaway);
   saveData();
   renderTakeaways();
+
+  // NUOVO: Emetti evento per sincronizzare
+  if (api && api.socket && api.socket.connected) {
+    api.socket.emit("nuovo_tavolo_asporto", {
+      type: "takeaway",
+      data: newTakeaway,
+    });
+  }
 }
 
 function showEditOrderItemModal(index) {
@@ -4684,7 +4721,15 @@ function renderTables(statusFilter = "all") {
       '<div class="text-center p-3">Nessun tavolo trovato con il filtro selezionato.</div>';
   }
 }
+async function syncExistingOrders() {
+  if (!api || !api.socket) return;
 
+  // Invia tutti i tavoli e asporti al server per sincronizzazione
+  api.socket.emit("sync_all_orders", {
+    tables: appState.tables,
+    takeaways: appState.takeaways,
+  });
+}
 function getCurrentOrderItem(index) {
   let orderObject;
   if (appState.currentOrderType === "table") {

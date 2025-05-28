@@ -1,5 +1,4 @@
 // Definizione dello stato dell'applicazione
-saveCovers;
 const appState = {
   menu: {
     categories: [
@@ -170,6 +169,8 @@ function setupWebSocketListeners() {
   });
   socket.on("nuovo_tavolo_asporto", (data) => {
     console.log("🆕 Nuovo tavolo/asporto ricevuto:", data);
+    console.log("Tipo ricevuto:", data.type);
+    console.log("Dati ricevuti:", data.data);
 
     if (data.type === "takeaway") {
       // Verifica se non esiste già
@@ -3494,17 +3495,20 @@ function saveTable() {
     .getElementById("saveTableBtn")
     .getAttribute("data-id");
 
+  let newTable = null; // Dichiarato fuori dall'if/else
+
   if (tableId) {
     // Stiamo modificando un tavolo esistente
     const tableIndex = appState.tables.findIndex((t) => t.id === tableId);
     if (tableIndex !== -1) {
       appState.tables[tableIndex].prefix = prefix;
       appState.tables[tableIndex].number = number;
+      appState.tables[tableIndex].customName = customName;
       appState.tables[tableIndex].status = status;
     }
   } else {
     // Stiamo creando un nuovo tavolo
-    const newTable = {
+    newTable = {
       id: generateId(),
       prefix: prefix,
       number: number,
@@ -3522,8 +3526,18 @@ function saveTable() {
 
     appState.tables.push(newTable);
   }
+
   saveData();
   renderTables();
+
+  // Emetti evento per sincronizzare il nuovo tavolo
+  if (!tableId && newTable && api && api.socket && api.socket.connected) {
+    api.socket.emit("nuovo_tavolo_asporto", {
+      type: "table",
+      data: newTable,
+    });
+    console.log("📡 Nuovo tavolo emesso:", newTable);
+  }
 
   // Chiudi il modal
   document.getElementById("tableModal").classList.remove("active");

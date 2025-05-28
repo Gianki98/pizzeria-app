@@ -23,8 +23,27 @@ class PizzeriaAPI {
   connectWebSocket() {
     this.socket = io();
 
+    // Debug: cattura TUTTI gli eventi
+    const originalEmit = this.socket.emit;
+    this.socket.emit = function (...args) {
+      console.log("📤 INVIO:", args[0], args[1]);
+      return originalEmit.apply(this, args);
+    };
+
+    const originalOn = this.socket.on;
+    this.socket.on = function (eventName, callback) {
+      const wrappedCallback = function (...args) {
+        if (eventName !== "connect" && eventName !== "disconnect") {
+          console.log("📥 RICEVO:", eventName, args[0]);
+        }
+        return callback.apply(this, args);
+      };
+      return originalOn.call(this, eventName, wrappedCallback);
+    };
+
     this.socket.on("connect", () => {
       console.log("🔌 Connesso al server");
+      console.log("🔌 Il mio Socket ID:", this.socket.id);
     });
 
     this.socket.on("disconnect", () => {

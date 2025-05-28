@@ -1,4 +1,5 @@
 // Definizione dello stato dell'applicazione
+closeOrder
 const appState = {
   menu: {
     categories: [

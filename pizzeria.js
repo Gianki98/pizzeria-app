@@ -1,5 +1,5 @@
 // Definizione dello stato dell'applicazione
-initializeApp;
+saveCovers;
 const appState = {
   menu: {
     categories: [
@@ -110,39 +110,63 @@ function setupWebSocketListeners() {
     console.log("❌ WebSocket disconnesso!");
   });
 
-  socket.on("ordine_aggiornato", (ordineModificato) => {
-    console.log("🔔 Ordine modificato ricevuto:", ordineModificato);
+  // Ascolta gli eventi dal SERVER (non dal client)
+  socket.on("ordine_aggiunto", (ordineData) => {
+    console.log("🔔 Nuovo ordine da altro dispositivo:", ordineData);
+    mostraNotifica(`Nuovo ordine: ${ordineData.tavolo}`, "info");
 
-    // Mostra notifica
-    mostraNotifica(`Ordine modificato: ${ordineModificato.tavolo}`, "warning");
+    // Ricarica i dati e aggiorna l'interfaccia
+    window.aggiornaListaOrdini();
+  });
+
+  socket.on("ordine_aggiornato", (ordineData) => {
+    console.log("🔔 Ordine modificato da altro dispositivo:", ordineData);
+    mostraNotifica(`Ordine modificato: ${ordineData.tavolo}`, "warning");
 
     // Se l'ordine modificato è quello attualmente visualizzato
-    if (ordineModificato.id === appState.currentOrderId) {
+    if (ordineData.id === appState.currentOrderId) {
       console.log("📱 Aggiornamento ordine corrente in corso...");
 
+      // Trova e aggiorna l'ordine locale
+      let orderFound = false;
+
       if (appState.currentOrderType === "table") {
-        const table = appState.tables.find((t) => t.id === ordineModificato.id);
+        const table = appState.tables.find((t) => t.id === ordineData.id);
         if (table) {
-          table.order.items = ordineModificato.items;
-          saveData();
-          renderOrderDetails();
-          console.log("✅ Tavolo aggiornato");
+          table.order.items = ordineData.items;
+          table.order.covers = ordineData.covers || 0;
+          table.status = ordineData.stato || table.status;
+          orderFound = true;
         }
       } else {
-        const takeaway = appState.takeaways.find(
-          (t) => t.id === ordineModificato.id
-        );
+        const takeaway = appState.takeaways.find((t) => t.id === ordineData.id);
         if (takeaway) {
-          takeaway.order.items = ordineModificato.items;
-          saveData();
-          renderOrderDetails();
-          console.log("✅ Asporto aggiornato");
+          takeaway.order.items = ordineData.items;
+          takeaway.status = ordineData.stato || takeaway.status;
+          orderFound = true;
         }
       }
-    } else {
-      // Aggiorna solo la lista dei tavoli/asporti
-      window.aggiornaListaOrdini();
+
+      if (orderFound) {
+        saveData();
+        renderOrderDetails();
+        console.log("✅ Ordine corrente aggiornato");
+      }
     }
+
+    // Aggiorna sempre la lista
+    window.aggiornaListaOrdini();
+  });
+
+  socket.on("ordine_rimosso", (ordineId) => {
+    console.log("🔔 Ordine eliminato da altro dispositivo:", ordineId);
+    mostraNotifica("Un ordine è stato eliminato", "info");
+    window.aggiornaListaOrdini();
+  });
+
+  socket.on("tavolo_sincronizzato", (tavoloData) => {
+    console.log("🔔 Tavolo sincronizzato:", tavoloData);
+    window.aggiornaListaOrdini();
   });
   socket.on("nuovo_tavolo_asporto", (data) => {
     console.log("🆕 Nuovo tavolo/asporto ricevuto:", data);
@@ -166,6 +190,23 @@ function setupWebSocketListeners() {
         mostraNotifica(`Nuovo tavolo creato: ${data.data.number}`, "info");
       }
     }
+  });
+  // NUOVO: Aggiungi listener per sync_all_orders dal server
+  socket.on("sync_all_orders_broadcast", (data) => {
+    console.log("🔄 Sincronizzazione completa ricevuta:", data);
+
+    // Aggiorna solo se ci sono differenze
+    if (data.tables && data.tables.length !== appState.tables.length) {
+      appState.tables = data.tables;
+      renderTables();
+    }
+
+    if (data.takeaways && data.takeaways.length !== appState.takeaways.length) {
+      appState.takeaways = data.takeaways;
+      renderTakeaways();
+    }
+
+    saveData();
   });
 }
 
@@ -1129,7 +1170,8 @@ function generateId() {
   );
 }
 // Funzione helper per emettere eventi WebSocket
-function emitOrderUpdate(action = "ordine_aggiornato") {
+// Funzione helper per emettere eventi WebSocket
+function emitOrderUpdate(action = "ordine_modificato") {
   if (!api || !api.socket || !api.socket.connected) return;
 
   let tableOrTakeaway;
@@ -1169,8 +1211,9 @@ function emitOrderUpdate(action = "ordine_aggiornato") {
       stato: tableOrTakeaway.status,
     };
 
+    // Usa i nomi degli eventi che il server ascolta
     api.socket.emit(action, orderData);
-    console.log(`📡 Evento ${action} emesso`);
+    console.log(`📡 Evento ${action} emesso:`, orderData);
   }
 }
 // Funzione per mostrare notifiche
@@ -1821,8 +1864,39 @@ function addItemToOrder(menuItem) {
   orderObject.items.push(orderItem);
   saveData();
 
-  // Emetti evento WebSocket
-  emitOrderUpdate();
+  // Emetti evento WebSocket con il nome corretto
+  if (api && api.socket && api.socket.connected) {
+    let tableOrTakeaway;
+    if (appState.currentOrderType === "table") {
+      tableOrTakeaway = appState.tables.find(
+        (t) => t.id === appState.currentOrderId
+      );
+    } else {
+      tableOrTakeaway = appState.takeaways.find(
+        (t) => t.id === appState.currentOrderId
+      );
+    }
+
+    if (tableOrTakeaway) {
+      const orderData = {
+        id: appState.currentOrderId,
+        type: appState.currentOrderType,
+        tavolo:
+          appState.currentOrderType === "table"
+            ? `Tavolo ${tableOrTakeaway.prefix || ""} ${
+                tableOrTakeaway.number || tableOrTakeaway.customName || ""
+              }`
+            : `Asporto #${tableOrTakeaway.number}`,
+        items: orderObject.items,
+        covers: orderObject.covers || 0,
+        stato: tableOrTakeaway.status,
+      };
+
+      // Usa 'ordine_modificato' che il server ascolta
+      api.socket.emit("ordine_modificato", orderData);
+      console.log("📡 Evento ordine_modificato emesso:", orderData);
+    }
+  }
 
   // Aggiorna la visualizzazione dell'ordine
   renderOrderDetails();
@@ -2738,6 +2812,7 @@ async function showAddTakeawayModal() {
       type: "takeaway",
       data: newTakeaway,
     });
+    console.log("📡 Nuovo asporto emesso:", newTakeaway);
   }
 }
 
@@ -4542,6 +4617,8 @@ function saveCovers() {
 
   // Se siamo nella vista ordine, aggiorna la visualizzazione
   if (appState.currentOrderId === tableId) {
+    // Emetti evento WebSocket
+    emitOrderUpdate();
     renderOrderDetails();
   }
 

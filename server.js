@@ -253,30 +253,47 @@ app.get("/api/tavoli", (req, res) => {
 
 // ============== WEBSOCKET EVENTS ==============
 
-// Dopo la connessione WebSocket, aggiungi questi event listeners:
 io.on("connection", (socket) => {
   console.log("🔌 Client connesso:", socket.id);
 
   // NUOVO: Gestisci eventi di sincronizzazione
   socket.on("nuovo_ordine", (ordineData) => {
-    console.log("📢 Nuovo ordine ricevuto, broadcasting...");
+    console.log(
+      "📢 Nuovo ordine ricevuto, broadcasting a tutti tranne mittente..."
+    );
     // Invia a TUTTI i client connessi (tranne chi ha inviato)
     socket.broadcast.emit("ordine_aggiunto", ordineData);
   });
 
   socket.on("ordine_modificato", (ordineData) => {
-    console.log("📢 Ordine modificato, broadcasting...");
+    console.log(
+      "📢 Ordine modificato, broadcasting a tutti tranne mittente..."
+    );
     socket.broadcast.emit("ordine_aggiornato", ordineData);
   });
 
   socket.on("ordine_eliminato", (ordineId) => {
-    console.log("📢 Ordine eliminato, broadcasting...");
+    console.log("📢 Ordine eliminato, broadcasting a tutti tranne mittente...");
     socket.broadcast.emit("ordine_rimosso", ordineId);
   });
 
   socket.on("tavolo_aggiornato", (tavoloData) => {
-    console.log("📢 Tavolo aggiornato, broadcasting...");
+    console.log(
+      "📢 Tavolo aggiornato, broadcasting a tutti tranne mittente..."
+    );
     socket.broadcast.emit("tavolo_sincronizzato", tavoloData);
+  });
+
+  socket.on("nuovo_tavolo_asporto", (data) => {
+    console.log(
+      "📢 Nuovo tavolo/asporto, broadcasting a tutti tranne mittente..."
+    );
+    socket.broadcast.emit("nuovo_tavolo_asporto", data);
+  });
+
+  socket.on("sync_all_orders", (data) => {
+    console.log("📢 Sincronizzazione completa richiesta");
+    socket.broadcast.emit("sync_all_orders_broadcast", data);
   });
 
   socket.on("disconnect", () => {

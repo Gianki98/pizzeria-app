@@ -1,5 +1,4 @@
 // Definizione dello stato dell'applicazione
-setupWebSocketListeners;
 const appState = {
   menu: {
     categories: [
@@ -121,41 +120,45 @@ function setupWebSocketListeners() {
 
   socket.on("ordine_aggiornato", (ordineData) => {
     console.log("🔔 Ordine modificato da altro dispositivo:", ordineData);
-    mostraNotifica(`Ordine modificato: ${ordineData.tavolo}`, "warning");
 
-    // Se l'ordine modificato è quello attualmente visualizzato
-    if (ordineData.id === appState.currentOrderId) {
-      console.log("📱 Aggiornamento ordine corrente in corso...");
+    // Trova l'ordine locale usando il type dal ordineData
+    let tableOrTakeaway = null;
 
-      // Trova e aggiorna l'ordine locale
-      let orderFound = false;
-
-      if (appState.currentOrderType === "table") {
-        const table = appState.tables.find((t) => t.id === ordineData.id);
-        if (table) {
-          table.order.items = ordineData.items;
-          table.order.covers = ordineData.covers || 0;
-          table.status = ordineData.stato || table.status;
-          orderFound = true;
-        }
-      } else {
-        const takeaway = appState.takeaways.find((t) => t.id === ordineData.id);
-        if (takeaway) {
-          takeaway.order.items = ordineData.items;
-          takeaway.status = ordineData.stato || takeaway.status;
-          orderFound = true;
-        }
-      }
-
-      if (orderFound) {
-        saveData();
-        renderOrderDetails();
-        console.log("✅ Ordine corrente aggiornato");
-      }
+    if (ordineData.type === "table") {
+      tableOrTakeaway = appState.tables.find((t) => t.id === ordineData.id);
+    } else {
+      tableOrTakeaway = appState.takeaways.find((t) => t.id === ordineData.id);
     }
 
-    // Aggiorna sempre la lista
-    window.aggiornaListaOrdini();
+    if (tableOrTakeaway) {
+      // Aggiorna TUTTI i dati dell'ordine
+      tableOrTakeaway.order.items = ordineData.items || [];
+      tableOrTakeaway.order.covers = ordineData.covers || 0;
+      if (ordineData.stato) {
+        tableOrTakeaway.status = ordineData.stato;
+      }
+
+      saveData();
+
+      // Se stiamo visualizzando questo ordine, aggiorna la vista
+      if (ordineData.id === appState.currentOrderId) {
+        renderOrderDetails();
+        console.log("✅ Vista ordine corrente aggiornata");
+      }
+
+      // Aggiorna sempre le liste
+      if (ordineData.type === "table") {
+        renderTables();
+      } else {
+        renderTakeaways();
+      }
+
+      console.log("✅ Ordine aggiornato localmente");
+    } else {
+      console.log("⚠️ Ordine non trovato localmente:", ordineData.id);
+    }
+
+    mostraNotifica(`Ordine modificato: ${ordineData.tavolo}`, "warning");
   });
 
   socket.on("ordine_rimosso", (ordineId) => {
@@ -1364,6 +1367,15 @@ function showOrderView(orderId, orderType) {
 
   renderOrderDetails();
   renderMenuCategories();
+
+  // Emetti evento per notificare che stiamo visualizzando questo ordine
+  if (api && api.socket && api.socket.connected) {
+    api.socket.emit("ordine_aperto", {
+      id: orderId,
+      type: orderType,
+    });
+    console.log("📡 Apertura ordine emessa:", orderType, orderId);
+  }
 }
 
 function updateUI() {

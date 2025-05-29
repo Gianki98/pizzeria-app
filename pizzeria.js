@@ -1,4 +1,5 @@
 // Definizione dello stato dell'applicazione
+printOrder;
 const appState = {
   menu: {
     categories: [
@@ -4124,7 +4125,11 @@ function printOrder() {
 
     // Poi le pizze familiari
     pizzeFamiliari.forEach((item) => {
-      content += printItem(item);
+      if (item.isHalfFamily) {
+        content += printHalfFamilyItem(item);
+      } else {
+        content += printItem(item);
+      }
     });
   }
 

@@ -752,3 +752,43 @@ main {
 .ws-status.connecting {
   background-color: #ff9800;
 }
+
+.variant-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.variant-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f5f5f5;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.variant-btn:hover {
+  background: #e8e8e8;
+  border-color: #3498db;
+}
+
+.variant-btn.selected {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.variant-name {
+  font-weight: 500;
+}
+
+.variant-price {
+  font-weight: 600;
+  margin-left: 20px;
+}

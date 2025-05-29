@@ -1,5 +1,4 @@
 // Definizione dello stato dell'applicazione
-printOrder;
 const appState = {
   menu: {
     categories: [
@@ -1701,9 +1700,14 @@ function renderOrderDetails() {
     orderItem.className = "order-item";
 
     // All'interno del blocco che costruisce itemDetails, dopo il nome dell'item
+    let displayName = item.name;
+    if (item.variant) {
+      displayName += ` <span style="color: #666; font-size: 0.9em;">(${item.variant})</span>`;
+    }
+
     let itemDetails = `
-    <div class="order-item-details">
-        <div class="order-item-name">${item.name} x ${item.quantity}</div>
+<div class="order-item-details">
+    <div class="order-item-name">${displayName} x ${item.quantity}</div>
 `;
 
     // Aggiungi l'indicazione per le pizze familiari
@@ -1888,12 +1892,19 @@ function renderOrderDetails() {
   updateOrderTotals();
 }
 
-function addItemToOrder(menuItem) {
+function addItemToOrder(menuItem, selectedVariant = null) {
   // Controllo validità menuItem
   if (!menuItem || !menuItem.name) {
     console.error("❌ Tentativo di aggiungere item non valido:", menuItem);
     return;
   }
+
+  // Se il prodotto ha varianti e non ne è stata selezionata una, mostra il modal di selezione
+  if (menuItem.variants && menuItem.variants.length > 0 && !selectedVariant) {
+    showVariantSelectionModal(menuItem);
+    return;
+  }
+
   let orderObject;
 
   if (appState.currentOrderType === "table") {
@@ -1910,10 +1921,28 @@ function addItemToOrder(menuItem) {
     return;
   }
 
+  // Determina il prezzo e il nome da usare
+  let itemPrice = menuItem.price;
+  let variantName = "";
+
+  if (selectedVariant) {
+    itemPrice = selectedVariant.price;
+    variantName = selectedVariant.name;
+  } else if (menuItem.defaultVariant && menuItem.variants) {
+    // Se non è stata selezionata una variante ma c'è una default
+    const defaultVar = menuItem.variants.find(
+      (v) => v.name === menuItem.defaultVariant
+    );
+    if (defaultVar) {
+      itemPrice = defaultVar.price;
+      variantName = defaultVar.name;
+    }
+  }
+
   // Crea un nuovo item per l'ordine
   const orderItem = {
     name: menuItem.name,
-    basePrice: menuItem.price,
+    basePrice: itemPrice,
     quantity: 1,
     discount: 0,
     isComplement: false,
@@ -1921,6 +1950,8 @@ function addItemToOrder(menuItem) {
     notes: "",
     additions: [],
     removals: [],
+    // NUOVO: Aggiungi informazioni sulla variante se presente
+    variant: variantName,
   };
 
   // Aggiungi l'item all'ordine
@@ -1980,7 +2011,131 @@ function addItemToOrder(menuItem) {
     showEditOrderItemModal(orderObject.items.length - 1);
   }
 }
-// Funzione per mostrare il modal di selezione mezze familiari
+
+// 2. NUOVA FUNZIONE per mostrare il modal di selezione variante
+function showVariantSelectionModal(menuItem) {
+  // Crea il modal HTML
+  const modalHtml = `
+    <div id="variantModal" class="modal active">
+      <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+          <h3>Seleziona formato - ${menuItem.name}</h3>
+          <button onclick="closeVariantModal()" class="btn btn-icon">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="variant-options">
+            ${menuItem.variants
+              .map(
+                (variant) => `
+              <button class="variant-btn ${
+                variant.name === menuItem.defaultVariant ? "selected" : ""
+              }" 
+                      onclick="selectVariant('${menuItem.id}', '${
+                  variant.name
+                }', ${variant.price})">
+                <span class="variant-name">${variant.name}</span>
+                <span class="variant-price">€${formatPrice(
+                  variant.price
+                )}</span>
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Aggiungi il modal al DOM
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+}
+// 3. FUNZIONE per chiudere il modal varianti
+function closeVariantModal() {
+  const modal = document.getElementById("variantModal");
+  if (modal) {
+    modal.remove();
+  }
+}
+
+// 4. FUNZIONE per selezionare una variante
+function selectVariant(menuItemId, variantName, variantPrice) {
+  const menuItem = appState.menu.items.find((item) => item.id === menuItemId);
+  if (menuItem) {
+    const selectedVariant = {
+      name: variantName,
+      price: variantPrice,
+    };
+    addItemToOrder(menuItem, selectedVariant);
+  }
+  closeVariantModal();
+}
+function showVariantSelectionModal(menuItem) {
+  // Crea il modal HTML
+  const modalHtml = `
+    <div id="variantModal" class="modal active">
+      <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+          <h3>Seleziona formato - ${menuItem.name}</h3>
+          <button onclick="closeVariantModal()" class="btn btn-icon modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="variant-options">
+            ${menuItem.variants
+              .map(
+                (variant, index) => `
+              <button class="variant-btn ${
+                variant.name === menuItem.defaultVariant ? "selected" : ""
+              }" 
+                      onclick="selectVariant('${menuItem.id}', '${
+                  variant.name
+                }', ${variant.price})"
+                      style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 15px 20px; margin-bottom: 10px; background: ${
+                        variant.name === menuItem.defaultVariant
+                          ? "#3498db"
+                          : "#f5f5f5"
+                      }; color: ${
+                  variant.name === menuItem.defaultVariant ? "white" : "black"
+                }; border: 2px solid ${
+                  variant.name === menuItem.defaultVariant ? "#3498db" : "#ddd"
+                }; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                <span style="font-weight: 500;">${variant.name}</span>
+                <span style="font-weight: 600;">€${formatPrice(
+                  variant.price
+                )}</span>
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Aggiungi il modal al DOM
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+}
+
+// 7. FUNZIONI per gestire il modal varianti
+function closeVariantModal() {
+  const modal = document.getElementById("variantModal");
+  if (modal) {
+    modal.remove();
+  }
+}
+
+function selectVariant(menuItemId, variantName, variantPrice) {
+  const menuItem = appState.menu.items.find((item) => item.id === menuItemId);
+  if (menuItem) {
+    const selectedVariant = {
+      name: variantName,
+      price: variantPrice,
+    };
+    addItemToOrder(menuItem, selectedVariant);
+  }
+  closeVariantModal();
+}
 // Funzione per mostrare il modal di selezione mezze familiari
 function showHalfFamilyModal(editIndex = null) {
   let editingItem = null;
@@ -2790,6 +2945,19 @@ function showEditItemModal(item) {
 
   categorySelect.value = item.categoryId;
 
+  // NUOVO: Pulisci e popola le varianti
+  const variantsContainer = document.getElementById("variantsContainer");
+  if (variantsContainer) {
+    variantsContainer.innerHTML = "";
+
+    // Se il prodotto ha varianti, aggiungile
+    if (item.variants && item.variants.length > 0) {
+      item.variants.forEach((variant) => {
+        addVariantRow(variant.name, variant.price);
+      });
+    }
+  }
+
   // Salva l'ID dell'item da modificare come attributo del pulsante salva
   document.getElementById("saveItemBtn").setAttribute("data-id", item.id);
 
@@ -2819,13 +2987,40 @@ function showAddItemModal() {
     categorySelect.value = appState.menu.categories[0].id;
   }
 
+  // NUOVO: Pulisci le varianti
+  const variantsContainer = document.getElementById("variantsContainer");
+  if (variantsContainer) {
+    variantsContainer.innerHTML = "";
+  }
+
   // Rimuovi l'ID dell'item da modificare
   document.getElementById("saveItemBtn").removeAttribute("data-id");
 
   // Mostra il modal
   document.getElementById("menuItemModal").classList.add("active");
 }
+function addVariantRow(name = "", price = "") {
+  const container = document.getElementById("variantsContainer");
+  if (!container) {
+    console.error("Container varianti non trovato");
+    return;
+  }
 
+  const variantRow = document.createElement("div");
+  variantRow.className = "variant-row";
+  variantRow.style.cssText =
+    "display: flex; gap: 10px; margin-bottom: 10px; align-items: center;";
+  variantRow.innerHTML = `
+    <input type="text" class="form-control variant-name-input" placeholder="Nome (es. Piccole)" value="${name}" style="flex: 1;">
+    <input type="number" class="form-control variant-price-input" placeholder="Prezzo" step="0.01" value="${price}" style="width: 100px;">
+    <button type="button" onclick="removeVariantRow(this)" class="btn btn-danger btn-sm" style="width: 40px;">×</button>
+  `;
+  container.appendChild(variantRow);
+}
+
+function removeVariantRow(button) {
+  button.parentElement.remove();
+}
 function showAddTableModal() {
   document.getElementById("tableModalTitle").textContent = "Nuovo Tavolo";
   document.getElementById("tablePrefix").value = "";
@@ -3621,6 +3816,19 @@ function saveMenuItem() {
     return;
   }
 
+  // NUOVO: Raccogli le varianti
+  const variants = [];
+  const variantRows = document.querySelectorAll(".variant-row");
+  variantRows.forEach((row) => {
+    const variantName = row.querySelector(".variant-name-input").value.trim();
+    const variantPrice = parseFloat(
+      row.querySelector(".variant-price-input").value
+    );
+    if (variantName && !isNaN(variantPrice) && variantPrice >= 0) {
+      variants.push({ name: variantName, price: variantPrice });
+    }
+  });
+
   // Controlla se stiamo modificando un prodotto esistente
   const itemId = document.getElementById("saveItemBtn").getAttribute("data-id");
 
@@ -3632,6 +3840,16 @@ function saveMenuItem() {
       appState.menu.items[itemIndex].price = price;
       appState.menu.items[itemIndex].categoryId = categoryId;
       appState.menu.items[itemIndex].description = description;
+
+      // NUOVO: Salva le varianti
+      if (variants.length > 0) {
+        appState.menu.items[itemIndex].variants = variants;
+        appState.menu.items[itemIndex].defaultVariant = variants[0].name;
+      } else {
+        // Rimuovi le varianti se sono state cancellate tutte
+        delete appState.menu.items[itemIndex].variants;
+        delete appState.menu.items[itemIndex].defaultVariant;
+      }
     }
   } else {
     // Stiamo creando un nuovo prodotto
@@ -3642,6 +3860,12 @@ function saveMenuItem() {
       categoryId: categoryId,
       description: description,
     };
+
+    // NUOVO: Aggiungi le varianti se presenti
+    if (variants.length > 0) {
+      newItem.variants = variants;
+      newItem.defaultVariant = variants[0].name;
+    }
 
     appState.menu.items.push(newItem);
   }
@@ -4081,6 +4305,10 @@ function printOrder() {
     } else {
       itemName += item.name;
     }
+    // Aggiungi la variante se presente
+    if (item.variant) {
+      itemName += ` (${item.variant})`;
+    }
 
     itemContent += `<span class="item-name">${itemName}</span>`;
 
@@ -4224,6 +4452,9 @@ function printReceipt() {
       // Calcola il prezzo base con aggiunzioni
       let itemPrice = item.basePrice;
       let itemDescription = item.name;
+      if (item.variant) {
+        itemDescription += ` (${item.variant})`;
+      }
 
       // Prezzo doppio per le pizze familiari
       if (item.isFamily) {

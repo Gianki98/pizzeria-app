@@ -687,6 +687,13 @@ function loadMenuItems() {
   appState.menu.items.push({
     id: generateId(),
     categoryId: "pizze-classiche",
+    name: "Pomodoro",
+    price: 4.0,
+    description: "Pomodoro",
+  });
+  appState.menu.items.push({
+    id: generateId(),
+    categoryId: "pizze-classiche",
     name: "Biancaneve",
     price: 4.5,
     description: "Mozzarella fiordilatte",
@@ -860,6 +867,14 @@ function loadMenuItems() {
     name: "Bufalina",
     price: 8.0,
     description: "Pomodoro e mozzarella di bufala",
+  });
+  appState.menu.items.push({
+    id: generateId(),
+    categoryId: "pizze-classiche",
+    name: "Margo'",
+    price: 8.0,
+    description:
+      "Pomodoro, mozzarella fiordilatte, prosciutto, salame piccante e gorgonzola",
   });
   appState.menu.items.push({
     id: generateId(),
